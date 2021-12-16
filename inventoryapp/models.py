@@ -11,8 +11,8 @@ class Item(models.Model):
         return self.name
 
 class PurchaseItem(models.Model):
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
+    item = models.ManyToManyField(Item)
+    # quantity = models.IntegerField()
 
 class InvoicePurchaseItem(models.Model):
     purchase_item = models.ForeignKey(PurchaseItem, on_delete=models.CASCADE)
