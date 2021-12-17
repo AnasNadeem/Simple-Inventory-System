@@ -1,11 +1,15 @@
 from rest_framework.serializers import ModelSerializer
-from inventoryapp.models import Item, PurchaseItem, InvoicePurchaseItem
+from inventoryapp.models import Item, PurchaseItem, InvoicePurchaseItem, Customer
 
 class ItemSerializer(ModelSerializer):
     class Meta:
         model = Item
         fields = "__all__"
 
+class CustomerSerializer(ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = "__all__"
 
 class PurchaseItemSerializer(ModelSerializer):
     class Meta:
