@@ -1,4 +1,5 @@
 from django.db import models
+# from django.contrib.auth.models import User
 
 # Create your models here.
 class Item(models.Model):
@@ -7,15 +8,19 @@ class Item(models.Model):
     quantity = models.IntegerField()
     description = models.TextField()
 
-    def __str__(self):
-        return self.name
+class Customer(models.Model):
+    name = models.CharField(max_length=150)
+    phone_num = models.CharField(max_length=10)
+    address = models.TextField()
 
 class PurchaseItem(models.Model):
-    item = models.ManyToManyField(Item)
-    # quantity = models.IntegerField()
+    cus_id = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
 
 class InvoicePurchaseItem(models.Model):
-    purchase_item = models.ForeignKey(PurchaseItem, on_delete=models.CASCADE)
+    cus_id = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    purchase_item = models.ManyToManyField(PurchaseItem)
     invoice = models.FileField(upload_to='invoice/')
 
     
