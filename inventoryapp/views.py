@@ -141,7 +141,6 @@ class PurchaseItemListView(ListAPIView):
     queryset = PurchaseItem.objects.all()
     serializer_class = PurchaseItemViewSerializer
 
-# Checked 
 class PurchaseItemCreateUpdateView(APIView):
     serializer_class = PurchaseItemSerializer
     def post(self, request, format=None):
@@ -153,7 +152,6 @@ class PurchaseItemCreateUpdateView(APIView):
             customer = Customer.objects.filter(id=cus_id)
             if len(customer)>0:
                 return self.check_item_and_quantity(cus_id=cus_id,item_id=item_id,quantity=quantity)
-                # return response.Response({'success':f"Purchase item created."}, status=status.HTTP_201_CREATED)
             else:
                 return response.Response({"error":"No such customer exists."}, status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -170,8 +168,7 @@ class PurchaseItemCreateUpdateView(APIView):
                 quantity = serializer.data.get('quantity')
                 customer = Customer.objects.filter(id=cus_id)
                 if len(customer)>0:
-                    self.check_item_and_quantity(cus_id=cus_id,item_id=item_id,quantity=quantity,put_pur_item=purchase_item)
-                    return response.Response({'success':f"Purchase item updated."}, status=status.HTTP_201_CREATED)
+                    return self.check_item_and_quantity(cus_id=cus_id,item_id=item_id,quantity=quantity,put_pur_item=purchase_item)
                 else:
                     return response.Response({"error":"No such customer exists."}, status=status.HTTP_400_BAD_REQUEST)                
             else:
@@ -184,21 +181,25 @@ class PurchaseItemCreateUpdateView(APIView):
         if len(item)>0:
             item = item[0]
             if quantity<=item.quantity:
-                new_quantity = item.quantity - quantity
-                item.quantity=new_quantity
-                item.save()
                 if put_pur_item:
+                    new_quantity = item.quantity - quantity
+                    item.quantity=new_quantity
+                    item.save()
                     put_pur_item.customer=Customer.objects.get(id=cus_id)
                     put_pur_item.item=item
                     put_pur_item.quantity=quantity
                     put_pur_item.save()
                     return response.Response({'success':f"Purchase item created."}, status=status.HTTP_201_CREATED)
                 else:
+                    new_quantity = item.quantity - quantity
+                    item.quantity=new_quantity
+                    item.save()
                     purchase_item = PurchaseItem()
                     purchase_item.customer=Customer.objects.get(id=cus_id)
                     purchase_item.item=item
                     purchase_item.quantity=quantity
                     purchase_item.save()
+                    return response.Response({'success':f"Purchase item updated."}, status=status.HTTP_201_CREATED)
             else:
                 return response.Response({"error":"Quantity failure."}, status=status.HTTP_400_BAD_REQUEST)
         else:
