@@ -14,12 +14,12 @@ class Customer(models.Model):
     address = models.TextField()
 
 class PurchaseItem(models.Model):
-    cus_id = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.IntegerField()
 
 class InvoicePurchaseItem(models.Model):
-    cus_id = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     purchase_item = models.ManyToManyField(PurchaseItem)
     invoice = models.FileField(upload_to='invoice/')
 

@@ -11,12 +11,18 @@ class CustomerSerializer(ModelSerializer):
         model = Customer
         fields = "__all__"
 
-class PurchaseItemSerializer(ModelSerializer):
+class PurchaseItemViewSerializer(ModelSerializer):
     class Meta:
         model = PurchaseItem
         fields = "__all__"
 
-    # def to_representation(self, instance):
-    #     response = super().to_representation(instance)
-    #     response['item'] = ItemSerializer(instance.item).data
-    #     return response
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response['customer'] = CustomerSerializer(instance.customer).data
+        response['item'] = ItemSerializer(instance.item).data
+        return response
+
+class PurchaseItemSerializer(ModelSerializer):
+    class Meta:
+        model = PurchaseItem
+        fields = "__all__"
