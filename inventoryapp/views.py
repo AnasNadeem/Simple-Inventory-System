@@ -14,11 +14,13 @@ from inventoryapp.models import (
 
 # Checked 
 class ItemListView(ListAPIView):
+    """GET - All the Items."""
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
 
 # Checked 
 class ItemCreateView(APIView):
+    """POST - Create Item with name price quantity and description."""
     serializer_class = ItemSerializer
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -43,6 +45,7 @@ class ItemCreateView(APIView):
 
 # Checked 
 class ItemUpdateView(APIView):
+    """PUT - Update Item with name price quantity and description."""
     serializer_class = ItemSerializer
     def put(self, request, pk, format=None):
         item = Item.objects.filter(id=pk)
@@ -67,6 +70,7 @@ class ItemUpdateView(APIView):
 
 # Checked 
 class ItemDeleteView(APIView):
+    """DELETE - Delete Item by their id."""
     def delete(self,request, pk, format=None):
         item = Item.objects.filter(id=pk)
         if len(item)>0:
@@ -78,11 +82,13 @@ class ItemDeleteView(APIView):
 
 # Checked 
 class CustomerListView(ListAPIView):
+    """GET - All the Customer."""
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
 #Checked
 class CustomerCreateView(APIView):
+    """POST - Create Customer with name number and address."""
     serializer_class = CustomerSerializer
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
@@ -105,6 +111,7 @@ class CustomerCreateView(APIView):
 
 # Checked
 class CustomerUpdateView(APIView):
+    """PUT - Update Customer with name number and address."""
     serializer_class = CustomerSerializer
     def put(self, request, pk, format=None):
         customer = Customer.objects.filter(id=pk)
@@ -127,6 +134,7 @@ class CustomerUpdateView(APIView):
 
 # Checked 
 class CustomerDeleteView(APIView):
+    """DELETE - Delete Customer by their id."""
     def delete(self, request, pk, format=None):
         customer = Customer.objects.filter(id=pk)
         if len(customer)>0:
@@ -138,75 +146,96 @@ class CustomerDeleteView(APIView):
 
 # Checked 
 class PurchaseItemListView(ListAPIView):
+    """GET - All the PurchaseItem."""
     queryset = PurchaseItem.objects.all()
     serializer_class = PurchaseItemViewSerializer
 
-class PurchaseItemCreateUpdateView(APIView):
+# Checked
+class PurchaseItemCreateView(APIView):
+    """POST - Create PurchaseItem with customer item and quantity."""
     serializer_class = PurchaseItemSerializer
     def post(self, request, format=None):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            cus_id = serializer.data.get('customer')
-            item_id = serializer.data.get('item')
-            quantity = serializer.data.get('quantity')
-            customer = Customer.objects.filter(id=cus_id)
+        cus_id = request.data['customer']
+        item_id = request.data['item']
+        quantity = request.data['quantity']
+        # Checking if the customer exist
+        customer = Customer.objects.filter(pk=cus_id)
+        if len(customer)>0:
+            # Checking if the item exist
+            item = Item.objects.filter(pk=item_id)
+            if len(item)>0:
+                item = item[0]
+                # Checking if PurchaseItem with that Item and Customer already exist
+                purchase_item = PurchaseItem.objects.filter(customer=customer[0].id, item=item.id)
+                if purchase_item.exists():
+                    return response.Response({"error":"Purchaseitem with that list already exists. Use PUT."}, status=status.HTTP_400_BAD_REQUEST)    
+                else:
+                    # Checking if the item of this quantity is available 
+                    if quantity<=item.quantity:
+                        # Creating Purchase Item
+                        new_purchase_item = PurchaseItem()
+                        new_purchase_item.customer = customer[0]
+                        new_purchase_item.item = item
+                        new_purchase_item.quantity = quantity
+                        new_purchase_item.save()
+                        # Updating the Item model
+                        new_quantity = item.quantity-quantity
+                        item.quantity = new_quantity
+                        item.save()
+                        return response.Response({"success":"PurchaseItem created."}, status=status.HTTP_201_CREATED)
+                    else:
+                        return response.Response({"error":"Quantity failure."}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return response.Response({"error":"No such item exists."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return response.Response({"error":"No such customer exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+# Checked 
+class PurchaseItemUpdateView(APIView):
+    """PUT - Update PurchaseItem with customer item and quantity."""
+    serializer_class = PurchaseItemSerializer
+    def put(self, request, pk, format=None):
+        # Checking if the PurchaseItem exist or not
+        purchase_item = PurchaseItem.objects.filter(pk=pk)
+        if len(purchase_item)>0:
+            purchase_item = purchase_item[0]
+            cus_id = request.data['customer']
+            item_id = request.data['item']
+            quantity = request.data['quantity']
+            # Checking if the customer exist
+            customer = Customer.objects.filter(pk=cus_id)
             if len(customer)>0:
-                return self.check_item_and_quantity(cus_id=cus_id,item_id=item_id,quantity=quantity)
+                # Checking if the item exist
+                item = Item.objects.filter(pk=item_id)
+                if len(item)>0:
+                    item = item[0]
+                    if quantity<=item.quantity:  
+                        if purchase_item.quantity >= quantity:
+                            # Updating the Item model quantity 
+                            new_quantity = item.quantity + (purchase_item.quantity - quantity)
+                            item.quantity = new_quantity
+                            item.save()
+                        else:
+                            # Updating the Item model quantity 
+                            new_quantity = item.quantity - (quantity - purchase_item.quantity)
+                            item.quantity = new_quantity
+                            item.save()
+                        # Updating the PurchaseItem quantity 
+                        purchase_item.quantity=quantity
+                        purchase_item.save()
+                        return response.Response({"success":"PurchaseItem updated."}, status=status.HTTP_201_CREATED)
+                    else:
+                        return response.Response({"error":"Quantity failure."}, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    return response.Response({"error":"No such item exists."}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 return response.Response({"error":"No such customer exists."}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return response.Response({"error":"Invalid data."}, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, pk, format=None):
-        purchase_item = PurchaseItem.objects.filter(id=pk)
-        if len(purchase_item)>0:
-            purchase_item = purchase_item[0]
-            serializer = self.serializer_class(data=request.data)
-            if serializer.is_valid():
-                cus_id = serializer.data.get('customer')
-                item_id = serializer.data.get('item')
-                quantity = serializer.data.get('quantity')
-                customer = Customer.objects.filter(id=cus_id)
-                if len(customer)>0:
-                    return self.check_item_and_quantity(cus_id=cus_id,item_id=item_id,quantity=quantity,put_pur_item=purchase_item)
-                else:
-                    return response.Response({"error":"No such customer exists."}, status=status.HTTP_400_BAD_REQUEST)                
-            else:
-                return response.Response({"error":"Invalid data."}, status=status.HTTP_400_BAD_REQUEST)     
-        else:
             return response.Response({"error":"Invalid Purchase Item."}, status=status.HTTP_400_BAD_REQUEST)
-
-    def check_item_and_quantity(self, cus_id, item_id, quantity, put_pur_item=''):
-        item = Item.objects.filter(id=item_id)
-        if len(item)>0:
-            item = item[0]
-            if quantity<=item.quantity:
-                if put_pur_item:
-                    new_quantity = item.quantity - quantity
-                    item.quantity=new_quantity
-                    item.save()
-                    put_pur_item.customer=Customer.objects.get(id=cus_id)
-                    put_pur_item.item=item
-                    put_pur_item.quantity=quantity
-                    put_pur_item.save()
-                    return response.Response({'success':f"Purchase item created."}, status=status.HTTP_201_CREATED)
-                else:
-                    new_quantity = item.quantity - quantity
-                    item.quantity=new_quantity
-                    item.save()
-                    purchase_item = PurchaseItem()
-                    purchase_item.customer=Customer.objects.get(id=cus_id)
-                    purchase_item.item=item
-                    purchase_item.quantity=quantity
-                    purchase_item.save()
-                    return response.Response({'success':f"Purchase item updated."}, status=status.HTTP_201_CREATED)
-            else:
-                return response.Response({"error":"Quantity failure."}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return response.Response({"error":"No such item exists."}, status=status.HTTP_400_BAD_REQUEST)
 
 # Checked 
 class PurchaseItemDeleteView(APIView):
+    """DELETE - Delete PurchaseItem by their id."""
     def delete(self, request, pk, format=None):
         purchase_item = PurchaseItem.objects.filter(id=pk)
         if len(purchase_item)>0:
