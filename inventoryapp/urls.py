@@ -14,7 +14,11 @@ from inventoryapp.views import (
     PurchaseItemListView,
     PurchaseItemCreateView,
     PurchaseItemUpdateView,
-    PurchaseItemDeleteView
+    PurchaseItemDeleteView,
+    # InvoicePurchaseItem 
+    InvoicePurchaseItemListView,
+    InvoicePurchaseItemCreateView,
+    InvoicePurchaseItemDeleteView
 )
 
 urlpatterns = [
@@ -33,4 +37,8 @@ urlpatterns = [
     path('create-puritem/', PurchaseItemCreateView.as_view()),
     path('update-puritem/<int:pk>/', PurchaseItemUpdateView.as_view()),
     path('delete-puritem/<int:pk>/', PurchaseItemDeleteView.as_view()),
+    # Invoice purchase item urls 
+    path('list-invpuritem/', InvoicePurchaseItemListView.as_view()),
+    path('create-invpuritem/', InvoicePurchaseItemCreateView.as_view()),
+    path('delete-invpuritem/<int:pk>/', InvoicePurchaseItemDeleteView.as_view())
 ]

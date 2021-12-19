@@ -26,3 +26,13 @@ class PurchaseItemSerializer(ModelSerializer):
     class Meta:
         model = PurchaseItem
         fields = "__all__"
+
+class InvoicePurchaseItemSerializer(ModelSerializer):
+    class Meta:
+        model = InvoicePurchaseItem
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        response = super().to_representation(instance)
+        response['customer'] = CustomerSerializer(instance.customer).data
+        return response

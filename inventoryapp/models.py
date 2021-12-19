@@ -21,6 +21,6 @@ class PurchaseItem(models.Model):
 class InvoicePurchaseItem(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     purchase_item = models.ManyToManyField(PurchaseItem)
-    invoice = models.FileField(upload_to='invoice/')
+    invoice = models.FileField(upload_to='', blank=True, null=True)
 
     

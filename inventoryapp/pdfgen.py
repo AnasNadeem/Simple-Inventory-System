@@ -5,12 +5,11 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 import os
 
-
 class GenereatePdf:
-    def create_inv(self, file_name, cus_name, cus_num, cus_add,invoice_id,crnt_date,total_price,price_in_words):
+    def create_inv(self, file_name, cus_name, cus_num, cus_add,invoice_id,prd_list,total_price):
         # Checking if the folder exists
         crnt_path = os.getcwd()
-        bill_fol = 'bill_invoice'
+        bill_fol = 'media'
         full_path = os.path.join(crnt_path, bill_fol)
         check_if_exists = os.path.exists(full_path)
         if check_if_exists==False:
@@ -69,11 +68,11 @@ class GenereatePdf:
                 ]
         data = []
         data.append(b_data)
-        # for prd in prd_list:
-        #     data.append(prd)
+        for prd in prd_list:
+            data.append(prd)
         
         # Inserting total price
-        data.append(['TOTAL', '', '', '2000/-'])
+        data.append(['TOTAL', '', '', f'{total_price}'])
 
 
         tblstyle = TableStyle([('INNERGRID', (0,0), (-1,-1), 0.25, colors.black),
@@ -102,15 +101,3 @@ class GenereatePdf:
         <b>{text}</b>
         </font>
         """)
-
-if __name__=="__main__":
-    file_name = 'testing'
-    cus_name = "Anas Nadeem"
-    cus_num = "6207781113"
-    cus_add = "Danapur Patna 801105"
-    invoice_id = 1
-    crnt_date = "23.12.2021"
-    total_price = "2000"
-    price_in_words = "Two thousands only"
-    gen_pdf = GenereatePdf()
-    gen_pdf.create_inv(file_name, cus_name, cus_num, cus_add,invoice_id,crnt_date,total_price,price_in_words)
