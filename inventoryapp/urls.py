@@ -12,13 +12,16 @@ from inventoryapp.views import (
     CustomerDeleteView,
     # PurchaseItem Get, Post, Update, Delete
     PurchaseItemListView,
+    PurchaseItemOrderedListView,
+    PurchaseItemUnOrderedListView,
     PurchaseItemCreateView,
     PurchaseItemUpdateView,
     PurchaseItemDeleteView,
-    # InvoicePurchaseItem 
+    PurchaseItemCustomerListView,
+    # InvoicePurchaseItem Get, Post, Delete
     InvoicePurchaseItemListView,
     InvoicePurchaseItemCreateView,
-    InvoicePurchaseItemDeleteView,
+    # InvoicePurchaseItemDeleteView,
     InvoicePurchaseItemView
 )
 
@@ -35,12 +38,16 @@ urlpatterns = [
     path('delete-customer/<int:pk>/', CustomerDeleteView.as_view()),
     # Purchase item urls 
     path('list-puritem/', PurchaseItemListView.as_view()),
+    path('list-orderedpuritem/', PurchaseItemOrderedListView.as_view()),
+    path('list-unorderedpuritem/', PurchaseItemUnOrderedListView.as_view()),
+    path('list-puritem/<customer>/', PurchaseItemCustomerListView.as_view()),
     path('create-puritem/', PurchaseItemCreateView.as_view()),
     path('update-puritem/<int:pk>/', PurchaseItemUpdateView.as_view()),
     path('delete-puritem/<int:pk>/', PurchaseItemDeleteView.as_view()),
     # Invoice purchase item urls 
     path('list-invpuritem/', InvoicePurchaseItemListView.as_view()),
     path('create-invpuritem/', InvoicePurchaseItemCreateView.as_view()),
-    path('delete-invpuritem/<int:pk>/', InvoicePurchaseItemDeleteView.as_view()),
+    # path('delete-invpuritem/<int:pk>/', InvoicePurchaseItemDeleteView.as_view()),
     path('get-invoice/<int:pk>/', InvoicePurchaseItemView.as_view()),
 ]
+

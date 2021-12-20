@@ -1,4 +1,4 @@
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 from rest_framework import status, response
 from inventoryapp.serializers import (
@@ -13,8 +13,9 @@ from inventoryapp.models import (
     InvoicePurchaseItem, 
     Customer)
 from inventoryapp.pdfgen import GenereatePdf
-from drf_pdf.response import PDFFileResponse
-from drf_pdf.renderer import PDFRenderer
+from django.http import FileResponse
+from inventory.settings import MEDIA_ROOT
+import os
 
 # Checked 
 class ItemListView(ListAPIView):
@@ -143,7 +144,7 @@ class CustomerUpdateView(APIView):
 class CustomerDeleteView(APIView):
     """DELETE - Delete Customer by their id."""
     def delete(self, request, pk, format=None):
-        customer = Customer.objects.filter(id=pk)
+        customer = Customer.objects.filter(pk=pk)
         if len(customer)>0:
             customer = customer[0]
             customer.delete()
@@ -152,15 +153,37 @@ class CustomerDeleteView(APIView):
             return response.Response({"error":"Invalid Customer."}, status=status.HTTP_400_BAD_REQUEST)
 
 # Checked 
+class PurchaseItemCustomerListView(ListAPIView):
+    """GET - List of particular customer puchase item details.."""
+    serializer_class = PurchaseItemViewSerializer
+    def get_queryset(self):
+        customer_id = self.kwargs['customer']
+        if Customer.objects.filter(pk=customer_id).exists():
+            return PurchaseItem.objects.filter(customer=customer_id)
+
+# Checked 
 class PurchaseItemListView(ListAPIView):
     """GET - All the PurchaseItem."""
     queryset = PurchaseItem.objects.all()
     serializer_class = PurchaseItemViewSerializer
 
+# Checked 
+class PurchaseItemOrderedListView(ListAPIView):
+    """GET - All the Ordered PurchaseItem."""
+    serializer_class = PurchaseItemViewSerializer
+    def get_queryset(self):
+        return PurchaseItem.objects.filter(ordered=True)
+        
+# Checked 
+class PurchaseItemUnOrderedListView(ListAPIView):
+    """GET - All the UnOrdered PurchaseItem."""
+    serializer_class = PurchaseItemViewSerializer
+    def get_queryset(self):
+        return PurchaseItem.objects.filter(ordered=False)
+        
 # Checked
 class PurchaseItemCreateView(APIView):
     """POST - Create PurchaseItem with customer item and quantity."""
-    serializer_class = PurchaseItemSerializer
     def post(self, request, format=None):
         cus_id = request.data['customer']
         item_id = request.data['item']
@@ -173,7 +196,7 @@ class PurchaseItemCreateView(APIView):
             if len(item)>0:
                 item = item[0]
                 # Checking if PurchaseItem with that Item and Customer already exist
-                purchase_item = PurchaseItem.objects.filter(customer=customer[0].id, item=item.id)
+                purchase_item = PurchaseItem.objects.filter(customer=customer[0].id, item=item.id, ordered=False)
                 if purchase_item.exists():
                     return response.Response({"error":"Purchaseitem with that list already exists. Use PUT."}, status=status.HTTP_400_BAD_REQUEST)    
                 else:
@@ -285,10 +308,14 @@ class InvoicePurchaseItemCreateView(APIView):
                     total_price+=item_price
                     prod_list.append(item_price)
                     all_prod_list.append(prod_list)
+                    # Changing ordered to True 
+                    purchase_item.ordered = True
+                    purchase_item.save()
                     # Inserting PurchaseItem in InvoicePurchaseItem 
                     inv_pur_item.purchase_item.add(purchase_item)
                 # File Name and location
-                exact_file_name = f"media/{inv_pur_item.id}_{(customer.name).split()[0]}_{total_price}"
+                file_name =  f"{inv_pur_item.id}_{(customer.name).split()[0]}_{total_price}"
+                exact_file_name = f"media/{file_name}"
                 # Generating Invoice
                 gen_pdf = GenereatePdf()
                 gen_pdf.create_inv(
@@ -300,7 +327,8 @@ class InvoicePurchaseItemCreateView(APIView):
                     prd_list=all_prod_list,
                     total_price=total_price)
                 # Insert the pdf into database 
-                inv_pur_item.invoice = f"{inv_pur_item.id}_{(customer.name).split()[0]}_{total_price}.pdf"
+                inv_pur_item.invoice.name = f"{file_name}.pdf"
+                
                 inv_pur_item.save()
                 return response.Response({"success":"Invoice has been generated."}, status=status.HTTP_201_CREATED)
             else:
@@ -309,29 +337,35 @@ class InvoicePurchaseItemCreateView(APIView):
             return response.Response({"error":"No such customer exists."}, status=status.HTTP_400_BAD_REQUEST)
 
 # Checked 
-class InvoicePurchaseItemDeleteView(APIView):
-    """DELETE - Delete InvoicePurchaseItem by their id."""
-    def delete(self, request, pk, format=None):
-        inv_purchase_item = InvoicePurchaseItem.objects.filter(id=pk)
-        if len(inv_purchase_item)>0:
-            inv_purchase_item = inv_purchase_item[0]
-            inv_purchase_item.delete()
-            return response.Response({"success":"Invoice has been deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-        else:
-            return response.Response({"error":"Invalid PurchaseItem."}, status=status.HTTP_400_BAD_REQUEST)
-
 class InvoicePurchaseItemView(APIView):
     """GET - Get Invoice of Purchase Item."""
-    renderer_classes = (PDFRenderer, )
+    # renderer_classes = (PDFRenderer, )
     def get(self, request, pk, format=None):
         inv_pur_item = InvoicePurchaseItem.objects.filter(pk=pk)
         if len(inv_pur_item)>0:
             inv_pur_item = inv_pur_item[0]
             file_path = inv_pur_item.invoice
-            # print(file_path.name, file_path.path, file_path.url)
-            return PDFFileResponse(file_path=file_path.url,status=status.HTTP_200_OK)
+            abs_path = os.path.join(MEDIA_ROOT, file_path.name)
+            resp = FileResponse(open(abs_path, 'rb'))
+            resp.headers = {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': f'attachment; filename={file_path.name}'
+            }
+            resp.as_attachment = True
+            return resp
         else:
             return response.Response({"error":"Invalid Invoice item."}, status=status.HTTP_400_BAD_REQUEST)
-# https://drf-pdf.readthedocs.io/en/latest/api-guide/responses/
-# https://docs.djangoproject.com/en/1.8/howto/outputting-pdf/
-# https://simpleisbetterthancomplex.com/tutorial/2016/08/08/how-to-export-to-pdf.html
+
+
+# Checked 
+# class InvoicePurchaseItemDeleteView(APIView):
+#     """DELETE - Delete InvoicePurchaseItem by their id."""
+#     def delete(self, request, pk, format=None):
+#         inv_purchase_item = InvoicePurchaseItem.objects.filter(id=pk)
+#         # To delete the pdf of incvoice from the media too - Work
+#         if len(inv_purchase_item)>0:
+#             inv_purchase_item = inv_purchase_item[0]
+#             inv_purchase_item.delete()
+#             return response.Response({"success":"Invoice has been deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+#         else:
+#             return response.Response({"error":"Invalid PurchaseItem."}, status=status.HTTP_400_BAD_REQUEST)
